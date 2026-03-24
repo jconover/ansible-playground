@@ -1,0 +1,13 @@
+[master]
+172.25.0.10
+
+[hosts]
+172.25.0.11
+172.25.0.12
+172.25.0.13
+172.25.0.14
+
+[all:vars]
+ansible_user=root
+ansible_password=ansible
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'

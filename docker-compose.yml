@@ -1,0 +1,59 @@
+services:
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    container_name: ansible-master
+    hostname: master
+    networks:
+      ansible-lab:
+        ipv4_address: 172.25.0.10
+    volumes:
+      - ./ansible:/root/ansible
+
+  host1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ansible-host1
+    hostname: host1
+    networks:
+      ansible-lab:
+        ipv4_address: 172.25.0.11
+
+  host2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ansible-host2
+    hostname: host2
+    networks:
+      ansible-lab:
+        ipv4_address: 172.25.0.12
+
+  host3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ansible-host3
+    hostname: host3
+    networks:
+      ansible-lab:
+        ipv4_address: 172.25.0.13
+
+  host4:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ansible-host4
+    hostname: host4
+    networks:
+      ansible-lab:
+        ipv4_address: 172.25.0.14
+
+networks:
+  ansible-lab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24

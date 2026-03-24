@@ -1,0 +1,32 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    openssh-client \
+    python3 \
+    python3-pip \
+    sudo \
+    vim \
+    curl \
+    iproute2 \
+    iputils-ping \
+    net-tools \
+    sshpass \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Ansible
+RUN pip3 install ansible
+
+# Configure SSH
+RUN mkdir /var/run/sshd \
+    && echo 'root:ansible' | chpasswd \
+    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Disable host key checking for lab convenience
+RUN mkdir -p /root/.ssh \
+    && echo "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null" > /root/.ssh/config \
+    && chmod 600 /root/.ssh/config
+
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
