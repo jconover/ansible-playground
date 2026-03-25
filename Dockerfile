@@ -19,4 +19,5 @@ RUN mkdir /var/run/sshd \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 EXPOSE 22
+RUN ssh-keygen -A
 CMD ["/usr/sbin/sshd", "-D"]
