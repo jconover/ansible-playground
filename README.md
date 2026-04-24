@@ -4,13 +4,13 @@ Docker-based Ansible lab with 5 nodes: 1 control node (master) and 4 managed hos
 
 ## Lab Nodes
 
-| Container        | Hostname | IP           | Role          |
-|------------------|----------|--------------|---------------|
-| `ansible-master` | master   | 172.25.0.10  | Control node  |
-| `ansible-host1`  | host1    | 172.25.0.11  | Managed host  |
-| `ansible-host2`  | host2    | 172.25.0.12  | Managed host  |
-| `ansible-host3`  | host3    | 172.25.0.13  | Managed host  |
-| `ansible-host4`  | host4    | 172.25.0.14  | Managed host  |
+| Container          | Hostname | IP           | Role          |
+|--------------------|----------|--------------|---------------|
+| `ansible-master`   | master   | 172.25.0.10  | Control node  |
+| `ansible-mysqldb`  | mysqldb  | 172.25.0.11  | MySQL DB host |
+| `ansible-host2`    | host2    | 172.25.0.12  | Managed host  |
+| `ansible-host3`    | host3    | 172.25.0.13  | Managed host  |
+| `ansible-host4`    | host4    | 172.25.0.14  | Managed host  |
 
 **SSH credentials (all nodes):** `root` / `ansible`
 
@@ -90,22 +90,38 @@ ansible-playbook /root/ansible/your-playbook.yml
 .
 ├── Dockerfile           # Base image for managed hosts (SSH + Python)
 ├── Dockerfile.master    # Control node image (SSH + Python + Ansible)
+├── Dockerfile.mysql     # MySQL host image (SSH + Python + mysqld)
+├── start-mysql.sh       # Entrypoint: starts mysqld then sshd
 ├── docker-compose.yml   # Defines all 5 containers and the lab network
 ├── README.md
 └── ansible/
     ├── ansible.cfg      # Ansible configuration
-    └── inventory        # Host inventory with groups [master] and [hosts]
+    └── inventory        # Host inventory with groups [master], [db], and [hosts]
 ```
 
 ## Inventory Groups
 
 - `[master]` - the Ansible control node
-- `[hosts]` - all 4 managed hosts
+- `[db]` - the MySQL database host (mysqldb, 172.25.0.11)
+- `[hosts]` - remaining managed hosts (host2–host4)
 - `all` - every node in the lab
+
+## MySQL
+
+The `mysqldb` container runs MySQL 8.0. The `root` user authenticates via the OS socket (no password needed from within the container).
+
+To create a database user with a password (MySQL 8.0+ syntax):
+
+```sql
+CREATE USER 'db_user'@'%' IDENTIFIED BY 'Passw0rd';
+GRANT ALL ON *.* TO 'db_user'@'%';
+FLUSH PRIVILEGES;
+```
+
+> **Note:** The old `GRANT ... IDENTIFIED BY` shorthand was removed in MySQL 8.0. Always create the user first, then grant privileges.
 
 ## Tips
 
 - The `./ansible/` directory is mounted into the master at `/root/ansible/`, so any playbooks or roles you create locally are immediately available inside the container.
 - Host key checking is disabled for convenience (`ansible.cfg` and SSH config on master).
 - To add more hosts, duplicate a host block in `docker-compose.yml` with a new IP and update the inventory file.
-# ansible-playground
