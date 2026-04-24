@@ -11,6 +11,16 @@ services:
     volumes:
       - ./ansible:/root/ansible
 
+  mysqldb:
+    build:
+      context: .
+      dockerfile: Dockerfile.mysql
+    container_name: ansible-mysqldb
+    hostname: mysqldb
+    networks:
+      ansible-lab:
+        ipv4_address: 172.25.0.11
+
   host1:
     build:
       context: .
@@ -19,7 +29,7 @@ services:
     hostname: host1
     networks:
       ansible-lab:
-        ipv4_address: 172.25.0.11
+        ipv4_address: 172.25.0.12
 
   host2:
     build:
@@ -29,7 +39,7 @@ services:
     hostname: host2
     networks:
       ansible-lab:
-        ipv4_address: 172.25.0.12
+        ipv4_address: 172.25.0.13
 
   host3:
     build:
@@ -37,16 +47,6 @@ services:
       dockerfile: Dockerfile
     container_name: ansible-host3
     hostname: host3
-    networks:
-      ansible-lab:
-        ipv4_address: 172.25.0.13
-
-  host4:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ansible-host4
-    hostname: host4
     networks:
       ansible-lab:
         ipv4_address: 172.25.0.14

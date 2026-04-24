@@ -2,21 +2,18 @@ FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y \
     openssh-server \
-    openssh-client \
     python3 \
     python3-pip \
+    python3-mysqldb \
     sudo \
     vim \
     curl \
     iproute2 \
     iputils-ping \
     net-tools \
-    sshpass \
+    mysql-server \
     mysql-client \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Ansible
-RUN pip3 install ansible
 
 # Configure SSH
 RUN mkdir /var/run/sshd \
@@ -24,10 +21,14 @@ RUN mkdir /var/run/sshd \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# Disable host key checking for lab convenience
-RUN mkdir -p /root/.ssh \
-    && echo "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null" > /root/.ssh/config \
-    && chmod 600 /root/.ssh/config
+# Configure MySQL: allow root login and bind to all interfaces
+RUN mkdir -p /var/run/mysqld \
+    && chown mysql:mysql /var/run/mysqld \
+    && echo "[mysqld]\nbind-address = 0.0.0.0" >> /etc/mysql/mysql.conf.d/mysqld.cnf
 
-EXPOSE 22
-CMD ["/usr/sbin/sshd", "-D"]
+EXPOSE 22 3306
+
+COPY start-mysql.sh /start-mysql.sh
+RUN chmod +x /start-mysql.sh
+
+CMD ["/start-mysql.sh"]

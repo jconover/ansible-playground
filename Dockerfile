@@ -4,12 +4,15 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     python3 \
     python3-pip \
+    python3-mysqldb \
+    build-essential \
     sudo \
     vim \
     curl \
     iproute2 \
     iputils-ping \
     net-tools \
+    mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH
