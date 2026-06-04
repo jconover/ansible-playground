@@ -1,16 +1,18 @@
 # Ansible Advanced Lab
 
-Docker-based Ansible lab with 5 nodes: 1 control node (master) and 4 managed hosts.
+Docker-based Ansible lab with 5 nodes: 1 control node (master) and 4 managed hosts (2 MySQL DB hosts + 2 generic hosts).
 
 ## Lab Nodes
 
-| Container          | Hostname | IP           | Role          |
-|--------------------|----------|--------------|---------------|
-| `ansible-master`   | master   | 172.25.0.10  | Control node  |
-| `ansible-mysqldb`  | mysqldb  | 172.25.0.11  | MySQL DB host |
-| `ansible-host2`    | host2    | 172.25.0.12  | Managed host  |
-| `ansible-host3`    | host3    | 172.25.0.13  | Managed host  |
-| `ansible-host4`    | host4    | 172.25.0.14  | Managed host  |
+| Container           | Hostname | IP           | Image              | Role          |
+|---------------------|----------|--------------|--------------------|---------------|
+| `ansible-master`    | master   | 172.25.0.10  | `Dockerfile.master`| Control node  |
+| `ansible-mysqldb1`  | mysqldb1 | 172.25.0.11  | `Dockerfile.mysql` | MySQL DB host |
+| `ansible-mysqldb2`  | mysqldb2 | 172.25.0.12  | `Dockerfile.mysql` | MySQL DB host |
+| `ansible-host1`     | host1    | 172.25.0.13  | `Dockerfile`       | Managed host  |
+| `ansible-host2`     | host2    | 172.25.0.14  | `Dockerfile`       | Managed host  |
+
+> A third generic host (`ansible-host3`, 172.25.0.15) is defined but commented out in `docker-compose.yml`. Uncomment it and add `172.25.0.15` to the `[hosts]` group in the inventory to enable it.
 
 **SSH credentials (all nodes):** `root` / `ansible`
 
@@ -88,12 +90,15 @@ ansible-playbook /root/ansible/your-playbook.yml
 
 ```
 .
-├── Dockerfile           # Base image for managed hosts (SSH + Python)
+├── Dockerfile           # Base image for generic managed hosts (SSH + Python)
 ├── Dockerfile.master    # Control node image (SSH + Python + Ansible)
-├── Dockerfile.mysql     # MySQL host image (SSH + Python + mysqld)
-├── start-mysql.sh       # Entrypoint: starts mysqld then sshd
+├── Dockerfile.mysql     # MySQL host image (SSH + Python + mysql-server)
+├── start-mysql.sh       # mysqldb entrypoint: starts mysqld then sshd
 ├── docker-compose.yml   # Defines all 5 containers and the lab network
 ├── README.md
+├── simple-webapp/       # Demo Flask + MySQL app for Ansible playbook practice
+│   ├── app.py
+│   └── README.md
 └── ansible/
     ├── ansible.cfg      # Ansible configuration
     └── inventory        # Host inventory with groups [master], [db], and [hosts]
@@ -101,14 +106,14 @@ ansible-playbook /root/ansible/your-playbook.yml
 
 ## Inventory Groups
 
-- `[master]` - the Ansible control node
-- `[db]` - the MySQL database host (mysqldb, 172.25.0.11)
-- `[hosts]` - remaining managed hosts (host2–host4)
+- `[master]` - the Ansible control node (master, 172.25.0.10)
+- `[db]` - the MySQL database hosts (mysqldb1 + mysqldb2, 172.25.0.11–172.25.0.12)
+- `[hosts]` - the generic managed hosts (host1 + host2, 172.25.0.13–172.25.0.14)
 - `all` - every node in the lab
 
 ## MySQL
 
-The `mysqldb` container runs MySQL 8.0. The `root` user authenticates via the OS socket (no password needed from within the container).
+The `mysqldb1` and `mysqldb2` containers each run MySQL 8.0 (from `Dockerfile.mysql`). The `root` user authenticates via the OS socket (no password needed from within the container).
 
 To create a database user with a password (MySQL 8.0+ syntax):
 
