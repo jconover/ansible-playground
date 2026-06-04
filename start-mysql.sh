@@ -5,4 +5,4 @@ set -e
 service mysql start
 
 # Start SSH in the foreground
-exec /usr/sbin/sshd -D
+exec /usr/sbin/sshd -D -e
