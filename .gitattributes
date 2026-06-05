@@ -1,0 +1,15 @@
+# Force LF line endings for everything that runs inside Linux containers.
+# Without this, a Windows checkout can convert shell scripts / Dockerfiles to
+# CRLF, which breaks the container entrypoints with "exec format error" or a
+# bad interpreter line. This keeps the lab identical on Linux, macOS, and
+# Windows (incl. WSL2).
+* text=auto eol=lf
+
+*.sh        text eol=lf
+Dockerfile* text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.cfg       text eol=lf
+*.py        text eol=lf
+inventory   text eol=lf
+Makefile    text eol=lf

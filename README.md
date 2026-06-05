@@ -2,6 +2,31 @@
 
 Docker-based Ansible lab with 5 nodes: 1 control node (master) and 4 managed hosts (2 MySQL DB hosts + 2 generic hosts).
 
+> ⚠️ **Intentionally insecure — lab use only.** Every node uses `root` login over
+> SSH with the hardcoded password `ansible`, password auth enabled, and host-key
+> checking disabled. This is deliberate so the lab is frictionless to practice
+> against. **Never** expose these containers to an untrusted network or reuse
+> this configuration on real hosts.
+
+## Topology
+
+```text
+              ┌─────────────────────────────┐
+              │  ansible-master (control)   │
+              │       172.25.0.10           │
+              └──────────────┬──────────────┘
+                             │ SSH (root/ansible)
+        ┌──────────┬─────────┴─────────┬──────────┐
+        ▼          ▼                   ▼          ▼
+   ┌─────────┐ ┌─────────┐        ┌─────────┐ ┌─────────┐
+   │ mysqldb1│ │ mysqldb2│        │  host1  │ │  host2  │
+   │  .11    │ │  .12    │        │  .13    │ │  .14    │
+   │ MySQL 8 │ │ MySQL 8 │        │ generic │ │ generic │
+   └─────────┘ └─────────┘        └─────────┘ └─────────┘
+     [db] group                     [hosts] group
+              network: ansible-lab  (172.25.0.0/24)
+```
+
 ## Lab Nodes
 
 | Container           | Hostname | IP           | Image              | Role          |
@@ -16,7 +41,40 @@ Docker-based Ansible lab with 5 nodes: 1 control node (master) and 4 managed hos
 
 **SSH credentials (all nodes):** `root` / `ansible`
 
+## Requirements & Platform Notes
+
+You need **Docker** with the **Compose v2** plugin (`docker compose`, not the old
+`docker-compose`). The lab is tested across three platforms:
+
+| Platform | Notes |
+|----------|-------|
+| **Linux (amd64)** — e.g. Ubuntu | Docker Engine + Compose plugin. Works out of the box. |
+| **macOS (Apple Silicon, M-series)** | Docker Desktop. Images run **natively as arm64** — do *not* force `platform: linux/amd64` (that triggers slow QEMU emulation and flaky MySQL). |
+| **Windows (amd64)** | Use **Docker Desktop with the WSL2 backend**, and **clone this repo inside the WSL2 filesystem** (e.g. `~/code/...`), *not* under `/mnt/c/...`. The `.gitattributes` file forces LF line endings so the container entrypoints don't break on a Windows checkout. |
+
+> The images are architecture-neutral (`ubuntu:22.04` base), so the same
+> `docker compose` commands produce a working lab on amd64 and arm64 alike.
+
+**Prefer real VMs over containers?** [Multipass](https://multipass.run/) is a
+good cross-platform alternative when you need full `systemd`/firewalld/reboot
+realism (it runs natively on macOS Apple Silicon and Linux). This repo stays on
+Docker Compose because it has the fastest onboarding, but a Multipass-based
+inventory is a natural future addition.
+
 ## Getting Started
+
+The quickest path is the `Makefile` (run `make` to see all targets):
+
+```bash
+make up        # build + start the whole lab in the background
+make ping      # ansible ping every node from the control node
+make shell     # open a shell on the control node
+make ps        # show container status + health
+make down      # stop and remove the containers
+make reset     # nuke volumes/images and rebuild from scratch
+```
+
+Or use Docker Compose directly:
 
 ### Build and start the lab
 
@@ -91,11 +149,15 @@ ansible-playbook /root/ansible/your-playbook.yml
 ```
 .
 ├── Dockerfile           # Base image for generic managed hosts (SSH + Python)
-├── Dockerfile.master    # Control node image (SSH + Python + Ansible)
+├── Dockerfile.master    # Control node image (SSH + Python + pinned Ansible)
 ├── Dockerfile.mysql     # MySQL host image (SSH + Python + mysql-server)
-├── start-mysql.sh       # mysqldb entrypoint: starts mysqld then sshd
-├── docker-compose.yml   # Defines all 5 containers and the lab network
+├── start-ssh.sh         # Entrypoint for master/host nodes: regen host keys, run sshd
+├── start-mysql.sh       # mysqldb entrypoint: regen host keys, start mysqld, run sshd
+├── docker-compose.yml   # Defines all 5 containers, healthchecks, and the lab network
+├── Makefile             # Convenience targets (up/down/ping/shell/reset/lint/...)
+├── .gitattributes       # Forces LF line endings (cross-platform safety)
 ├── README.md
+├── REVIEW.md            # Tri-model review + improvement roadmap
 ├── simple-webapp/       # Demo Flask + MySQL app for Ansible playbook practice
 │   ├── app.py
 │   └── README.md

@@ -1,3 +1,13 @@
+# Reusable SSH readiness check: the container is "healthy" once sshd accepts
+# TCP connections on port 22 (so `docker compose up` / `make up` only report
+# ready when Ansible can actually reach the node). Uses bash's /dev/tcp.
+x-ssh-healthcheck: &ssh-healthcheck
+  test: ["CMD-SHELL", "bash -c ': >/dev/tcp/127.0.0.1/22'"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 10s
+
 services:
   master:
     build:
@@ -10,6 +20,7 @@ services:
         ipv4_address: 172.25.0.10
     volumes:
       - ./ansible:/root/ansible
+    healthcheck: *ssh-healthcheck
 
   mysqldb1:
     build:
@@ -20,6 +31,11 @@ services:
     networks:
       ansible-lab:
         ipv4_address: 172.25.0.11
+    healthcheck:
+      # DB nodes are healthy only when both MySQL and sshd are up.
+      <<: *ssh-healthcheck
+      test: ["CMD-SHELL", "bash -c 'mysqladmin ping -h 127.0.0.1 --silent && : >/dev/tcp/127.0.0.1/22'"]
+      start_period: 30s
 
   mysqldb2:
     build:
@@ -30,6 +46,10 @@ services:
     networks:
       ansible-lab:
         ipv4_address: 172.25.0.12
+    healthcheck:
+      <<: *ssh-healthcheck
+      test: ["CMD-SHELL", "bash -c 'mysqladmin ping -h 127.0.0.1 --silent && : >/dev/tcp/127.0.0.1/22'"]
+      start_period: 30s
 
   host1:
     build:
@@ -40,6 +60,7 @@ services:
     networks:
       ansible-lab:
         ipv4_address: 172.25.0.13
+    healthcheck: *ssh-healthcheck
 
   host2:
     build:
@@ -50,6 +71,7 @@ services:
     networks:
       ansible-lab:
         ipv4_address: 172.25.0.14
+    healthcheck: *ssh-healthcheck
 
 #  host3:
 #    build:
@@ -60,6 +82,7 @@ services:
 #    networks:
 #      ansible-lab:
 #        ipv4_address: 172.25.0.15
+#    healthcheck: *ssh-healthcheck
 
 networks:
   ansible-lab:

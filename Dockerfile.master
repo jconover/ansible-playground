@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y \
     mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Ansible
-RUN pip3 install ansible
+# Install Ansible (pinned for reproducible builds across machines/architectures).
+# Override at build time with: docker build --build-arg ANSIBLE_VERSION=X.Y.Z
+ARG ANSIBLE_VERSION=10.7.0
+RUN pip3 install --no-cache-dir "ansible==${ANSIBLE_VERSION}"
 
 # Configure SSH
 RUN mkdir /var/run/sshd \
@@ -29,11 +31,17 @@ RUN mkdir /var/run/sshd \
 # Point Ansible at the config in the mounted volume
 ENV ANSIBLE_CONFIG=/root/ansible/ansible.cfg
 
-# Disable host key checking for lab convenience
+# Disable host key checking for lab convenience.
+# Use printf (not echo) so the escapes are written literally as newlines
+# regardless of which /bin/sh implementation runs the RUN step.
 RUN mkdir -p /root/.ssh \
-    && echo "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null" > /root/.ssh/config \
+    && printf 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n' > /root/.ssh/config \
     && chmod 600 /root/.ssh/config
 
 EXPOSE 22
-RUN ssh-keygen -A
-CMD ["/usr/sbin/sshd", "-D", "-e"]
+
+# Generate SSH host keys at container startup (not build time) so each
+# container gets unique keys instead of sharing keys baked into the image.
+COPY start-ssh.sh /start-ssh.sh
+RUN chmod +x /start-ssh.sh
+CMD ["/start-ssh.sh"]

@@ -24,5 +24,9 @@ RUN mkdir /var/run/sshd \
     && sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd
 
 EXPOSE 22
-RUN ssh-keygen -A
-CMD ["/usr/sbin/sshd", "-D", "-e"]
+
+# Generate SSH host keys at container startup (not build time) so each
+# container gets unique keys instead of sharing keys baked into the image.
+COPY start-ssh.sh /start-ssh.sh
+RUN chmod +x /start-ssh.sh
+CMD ["/start-ssh.sh"]
